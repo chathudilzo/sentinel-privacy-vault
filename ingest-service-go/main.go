@@ -48,7 +48,16 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		
 		policyURL := fmt.Sprintf("http://localhost:9090/api/v1/policy/check?filename=%s", url.QueryEscape(filename))
 		
-		resp, err := http.Get(policyURL)
+		req, err := http.NewRequest("GET", policyURL, nil)
+		if err != nil {
+			http.Error(w, "Failed to create policy request", http.StatusInternalServerError)
+			return
+		}
+		
+		req.Header.Set("X-API-KEY", "super-secret-vault-key-2026")
+
+		client := &http.Client{}
+		resp, err := client.Do(req)
 		if err != nil {
 			log.Printf("Policy Engine offline: %v", err)
 			http.Error(w, "Security Policy Engine is currently unavailable. Upload aborted.", http.StatusServiceUnavailable)
