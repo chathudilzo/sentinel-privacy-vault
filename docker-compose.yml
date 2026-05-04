@@ -1,0 +1,50 @@
+version: "3.8"
+
+services:
+  postgres-db:
+    image: postgres:16-alpine
+    container_name: sentinel-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: chathu
+      POSTGRES_DB: sentinel_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  java-brain:
+    build: ./java-backend
+    container_name: sentinel-java
+    ports:
+      - "9090:9090"
+    depends_on:
+      - postgres-db
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/sentinel_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: chathu
+
+  go-engine:
+    build: ./go-service
+    container_name: sentinel-go
+    ports:
+      - "8080:8080"
+    depends_on:
+      - java-brain
+    environment:
+      JAVA_API_URL: http://java-brain:9090/api/v1/policy
+
+  web-portal:
+    build: ./web-portal
+    container_name: sentinel-nextjs
+    ports:
+      - "3000:3000"
+    depends_on:
+      - java-brain
+    environment:
+      JAVA_API_URL: http://java-brain:9090/api/v1/policy
+      SENTINEL_API_KEY: super-secret-vault-key-2026
+
+volumes:
+  pgdata:
